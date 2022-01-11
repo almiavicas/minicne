@@ -28,3 +28,15 @@ def test_add_center(election):
     except AttributeError:
         centers = election.getCenters()
         assert len(centers) == 1
+
+def test_add_voter(election):
+    voters = election.getVoters()
+    assert len(voters) == 0
+    assert election.addVoter(accounts[0], 0, 0, {'from': accounts[0]})
+    voters = election.getVoters()
+    assert len(voters) == 1
+    try:
+        election.addVoter(accounts[1], 0, 0, {'from': accounts[1]})
+    except AttributeError:
+        voters = election.getVoters()
+        assert len(voters) == 1

@@ -78,6 +78,14 @@ contract ElectionV2 {
     }
 
     /**
+        @notice Get voters.
+        @return voters array.
+     */
+    function getVoters() public view returns (Voter[] memory) {
+        return voters;
+    }
+
+    /**
         @notice Add a new location to the Contract.
         @param id - The location id.
         @param name - The location name.
