@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Script para generar votantes.
+# Ejemplo: ./genVotante -f localidades.txt
+
+# Parsear input
+while [[ $# -gt 0 ]]; do
+    key=$1
+
+    case $key in
+        -f)
+            archivoConfig=$2
+            shift
+            shift
+            ;;
+        *) # unknown option
+            echo "Opcion invalida $key"
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z $(command -v python) ]]; then
+    echo "Please start a python environment to run the python command"
+    exit 1
+fi
+# gnome-terminal -- python scripts/genVotante.py $archivoConfig
+python scripts/genVotante.py $archivoConfig
