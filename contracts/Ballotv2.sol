@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-contract Election {
+contract ElectionV2 {
     struct Voter {
         address id;
         uint centerId;
@@ -59,6 +59,22 @@ contract Election {
             }
         }
         revert('Could not find the requested center');
+    }
+
+    /**
+        @notice Get Locations.
+        @return locations array.
+     */
+    function getLocations() public view returns (Location[] memory) {
+        return locations;
+    }
+
+    /**
+        @notice Get centers.
+        @return centers array.
+     */
+    function getCenters() public view returns (Center[] memory) {
+        return centers;
     }
 
     /**
