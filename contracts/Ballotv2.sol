@@ -21,6 +21,15 @@ contract Election {
     address public cne;
     Location[] public locations;
 
+    constructor() {
+        cne = msg.sender;
+    }
+
+    modifier CNEOnly {
+        require(msg.sender == cne);
+        _;
+    }
+
     /**
         @notice Find a location by id.
         @param id - Location id.
@@ -48,11 +57,6 @@ contract Election {
             }
         }
         revert('Could not find the requested center');
-    }
-
-    modifier CNEOnly {
-        require(msg.sender == cne);
-        _;
     }
 
     /**
