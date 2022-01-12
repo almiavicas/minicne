@@ -237,7 +237,7 @@ contract ElectionV2 {
         @param voterId - The existing voter id.
         @return Wether the candidate was successfully added or not.
      */
-    function addCandidateToBallot(uint ballotId, address voterId) public CNEOnly returns (bool) {
+    function addCandidate(uint ballotId, address voterId) public CNEOnly returns (bool) {
         for (uint i = 0; i < candidates.length; i++) {
             if (candidates[i].id == voterId) {
                 require(ballots[candidates[i].ballotId].id != ballotId);
