@@ -153,7 +153,7 @@ contract ElectionV2 {
         return true;
     }
 
-    function addCandidateIntoBallot(uint ballot, uint position, string memory name, address id) public CNEOnly returns (bool)  {
+    function addCandidateIntoBallot(uint ballot, string memory name, address id) public CNEOnly returns (bool)  {
         ballotCandidates[ballot][id] = Candidate(id, name, 0);
         return true;
     }
@@ -165,7 +165,7 @@ contract ElectionV2 {
             id : id,
             closed : false
             }));
-            
+
         return true;
     }
 
