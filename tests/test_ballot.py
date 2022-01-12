@@ -30,6 +30,7 @@ def test_add_center(election):
         assert len(centers) == 1
 
 def test_add_voter(election):
+    election.addLocation(0, 'Zulia', {'from': accounts[0]})
     voters = election.getVoters()
     assert len(voters) == 0
     assert election.addVoter(accounts[0], 0, 0, {'from': accounts[0]})
