@@ -21,17 +21,30 @@ contract ElectionV2 {
         string name;
         uint voters;
     }
+    struct Candidate {
+        address id;
+        string name;
+        uint votesCount;
+    }
+    struct Ballot {
+        bytes32 id;
+        bool closed;
+    }
     
     address public cne;
+    uint public rounds;
     Location[] public locations;
     Center[] public centers;
     Voter[] public voters;
+    Ballot[] public ballots;
+    mapping(uint => mapping(address => Candidate)) ballotCandidates;
     mapping(uint => mapping(uint => Center)) centersByLocation;
     mapping(uint => mapping(address => Voter)) votersByCenter;
 
 
     constructor() {
         cne = msg.sender;
+        rounds = 2;
     }
 
     modifier CNEOnly {
@@ -138,5 +151,27 @@ contract ElectionV2 {
         voters.push(v);
         votersByCenter[centerId][id] = v;
         return true;
+    }
+
+    function addCandidateIntoBallot(uint ballot, uint position, string memory name, address id) public CNEOnly returns (bool)  {
+        ballotCandidates[ballot][id] = Candidate(id, name, 0);
+        return true;
+    }
+
+    function addBallot(bytes32 id) public CNEOnly returns (bool)  {
+        require(ballots.length <= rounds);
+
+        ballots.push(Ballot({
+            id : id,
+            closed : false
+            }));
+            
+        return true;
+    }
+
+    function closeBallot(uint ballot) public CNEOnly {
+        require(ballot < rounds);
+        require(!ballots[ballot].closed);
+        ballots[ballot].closed = true;
     }
 }
