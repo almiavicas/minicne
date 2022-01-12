@@ -13,6 +13,7 @@ def test_add_center(election):
     assert len(centers) == 1
     try:
         election.addCenter(1, 0, {'from': accounts[1]})
+        assert False
     except AttributeError:
         centers = election.getCenters()
         assert len(centers) == 1

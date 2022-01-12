@@ -14,6 +14,7 @@ def test_add_voter(election):
     assert len(voters) == 1
     try:
         election.addVoter(accounts[1], 0, 0, {'from': accounts[1]})
+        assert False
     except AttributeError:
         voters = election.getVoters()
         assert len(voters) == 1

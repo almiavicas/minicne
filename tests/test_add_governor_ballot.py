@@ -10,5 +10,6 @@ def test_add_governor_ballot(election):
     assert election.addGovernorBallot(0, 0, {'from': accounts[0]})
     try:
         election.addGovernorBallot(1, 0, {'from': accounts[1]})
+        assert False
     except AttributeError:
         pass

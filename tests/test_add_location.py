@@ -13,6 +13,7 @@ def test_add_location(election):
     assert len(locations) == 1
     try:
         election.addLocation(1, 'DistritoCapital', {'from': accounts[1]})
+        assert False
     except AttributeError:
         locations = election.getLocations()
         assert len(locations) == 1

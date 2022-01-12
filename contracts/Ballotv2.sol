@@ -2,15 +2,18 @@ pragma solidity ^0.8.0;
 
 // SPDX-License-Identifier: MIT
 
-import "./SafeMath.sol";
-
 contract ElectionV2 {
-    using SafeMath for uint;
 
     struct Voter {
         address id;
         uint centerId;
         uint locationId;
+    }
+    struct Vote {
+        address voterId;
+        address candidateId;
+        uint ballotId;
+        uint roundId;
     }
     struct Center {
         uint id;
@@ -42,9 +45,14 @@ contract ElectionV2 {
     Voter[] public voters;
     Candidate[] public candidates;
     Ballot[] public ballots;
+    Vote[] public votes;
     mapping(uint => mapping(uint => Center)) centersByLocation;
     mapping(uint => mapping(address => Voter)) votersByCenter;
+    mapping(uint => mapping(address => address)) votesByBallot;
 
+    event VoteEmitted(Vote vote);
+    event OpenBallot(Ballot ballot);
+    event CloseBallot(Ballot ballot, address winner);
 
     constructor() {
         cne = msg.sender;
@@ -151,6 +159,14 @@ contract ElectionV2 {
     }
 
     /**
+        @notice Get candidates.
+        @return candidates array.
+     */
+    function getCandidates() public view returns (Candidate[] memory) {
+        return candidates;
+    }
+
+    /**
         @notice Add a new location to the Contract.
         @param id - The location id.
         @param name - The location name.
@@ -193,7 +209,7 @@ contract ElectionV2 {
         }
         uint index = findLocationIndex(locationId);
         Location memory l = locations[index];
-        l.voters = l.voters.add(1);
+        l.voters = l.voters + 1;
         Voter memory v = Voter(id, centerId, locationId);
         voters.push(v);
         votersByCenter[centerId][id] = v;
@@ -256,24 +272,35 @@ contract ElectionV2 {
         return true;
     }
 
+    /**
+        @notice Open a ballot for votes.
+        @param id - Ballot ID.
+        @return Wether the ballot was successfully opened or not.
+     */
     function openBallot(uint id) public CNEOnly returns (bool) {
         uint index = findBallotIndex(id);
         Ballot memory b = ballots[index];
         uint ballotCandidates = 0;
         for (uint i = 0; i < candidates.length; i++) {
             if (candidates[i].ballotId == b.id) {
-                ballotCandidates = ballotCandidates.add(1);
+                ballotCandidates = ballotCandidates + 1;
             }
         }
         require(ballotCandidates > 1, 'Ballot requires at least 2 candidates to open');
         require(b.closed, 'Ballot requires to be closed');
         require(b.round < maxrounds, 'Ballot rounds requires to be less than maxrounds');
         b.closed = false;
-        b.round = b.round.add(1);
+        b.round = b.round + 1;
         ballots[index] = b;
+        emit OpenBallot(b);
         return true;
     }
 
+    /**
+        @notice Close an opened ballot. We need to have 2 rounds in order to close a ballot.
+        @param id - Ballot ID.
+        @return Wether the ballot was successfully closed or not.
+     */
     function closeBallot(uint id) public CNEOnly returns (bool) {
         uint index = findBallotIndex(id);
         Ballot memory b = ballots[index];
@@ -281,25 +308,45 @@ contract ElectionV2 {
         require(b.round == 2, 'Ballot must have two rounds to close');
         b.closed = true;
         ballots[index] = b;
+        Candidate memory winner = Candidate(address(0x00), b.id, 2, 0);
+        for (uint i = 0; i < candidates.length; i++) {
+            if (candidates[i].ballotId == b.id) {
+                if (candidates[i].votesCount > winner.votesCount) {
+                    winner = candidates[i];
+                }
+            }
+        }
+        emit CloseBallot(b, winner.id);
         return true;
     }
 
-    function nextRound(uint ballotId) public CNEOnly returns (bool) {
-        uint index = findBallotIndex(ballotId);
+    /**
+        @notice Enter the next round for a ballot. The ballot must be opened and in the first round.
+        @param id - The ballot ID.
+        @return Wether the next round has successfully started or not.
+     */
+    function nextRound(uint id) public CNEOnly returns (bool) {
+        uint index = findBallotIndex(id);
         Ballot memory b = ballots[index];
         require(b.round < maxrounds);
         require(candidates.length > 1);
         require(!b.closed);
         b.closed = true;
+        ballots[index] = b;
+        uint c1_index = 0;
+        uint c2_index = 0;
         Candidate memory c1 = Candidate(address(0x00), b.id, 1, 0);
         Candidate memory c2 = Candidate(address(0x00), b.id, 1, 0);
         for (uint i = 0; i < candidates.length; i++) {
             if (candidates[i].ballotId == b.id) {
                 if (candidates[i].votesCount >= c1.votesCount) {
                     c2 = c1;
+                    c2_index = c1_index;
                     c1 = candidates[i];
+                    c1_index = i;
                 } else if (candidates[i].votesCount >= c2.votesCount) {
                     c2 = candidates[i];
+                    c2_index = i;
                 }
             }
         }
@@ -307,8 +354,43 @@ contract ElectionV2 {
         c1.votesCount = 0;
         c2.roundId = 2;
         c2.votesCount = 0;
-        candidates.push(c1);
-        candidates.push(c2);
-        return openBallot(ballotId);
+        candidates[c1_index] = c1;
+        candidates[c2_index] = c2;
+        return openBallot(id);
+    }
+
+    /**
+        @notice Vote for a candidate in a specific round of a ballot.
+        @param ballotId - The ballot id.
+        @param roundId - The round id.
+        @param candidateId - The candidate address.
+        @return Wether the vote was successfully generated or not.
+     */
+    function vote(uint ballotId, uint roundId, address candidateId) public returns (bool) {
+        for (uint i = 0; i < votes.length; i++) {
+            if (votes[i].voterId == msg.sender && votes[i].ballotId == ballotId) {
+                require(votes[i].roundId != roundId, 'Cannot vote more than once in a round');
+            }
+        }
+        uint ballotIndex = findBallotIndex(ballotId);
+        Ballot memory b = ballots[ballotIndex];
+        require(b.round == roundId, 'Sent round is not the current round');
+        require(!b.closed, 'Ballot is closed');
+        uint voterIndex = findVoterIndex(msg.sender);
+        Voter memory v = voters[voterIndex];
+        uint centerIndex = findCenterIndex(v.centerId);
+        Center memory center = centers[centerIndex];
+        if (!b.global) {
+            require(v.locationId == b.locationId, 'Voter is not in ballot location');
+            require(center.locationId == b.locationId, 'Center is not in ballot location');
+        }
+        uint candidateIndex = findCandidateIndex(candidateId);
+        Candidate memory c = candidates[candidateIndex];
+        Vote memory _vote = Vote(v.id, c.id, b.id, b.round);
+        votes.push(_vote);
+        emit VoteEmitted(_vote);
+        c.votesCount = c.votesCount + 1;
+        candidates[candidateIndex] = c;
+        return true;
     }
 }
