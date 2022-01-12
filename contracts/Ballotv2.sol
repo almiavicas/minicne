@@ -46,9 +46,6 @@ contract ElectionV2 {
     Candidate[] public candidates;
     Ballot[] public ballots;
     Vote[] public votes;
-    mapping(uint => mapping(uint => Center)) centersByLocation;
-    mapping(uint => mapping(address => Voter)) votersByCenter;
-    mapping(uint => mapping(address => address)) votesByBallot;
 
     event VoteEmitted(Vote vote);
     event OpenBallot(Ballot ballot);
@@ -194,7 +191,6 @@ contract ElectionV2 {
         }
         Center memory c = Center(id, locationId);
         centers.push(c);
-        centersByLocation[locationId][id] = c;
         return true;
     }
 
@@ -214,7 +210,6 @@ contract ElectionV2 {
         l.voters = l.voters + 1;
         Voter memory v = Voter(id, centerId, locationId);
         voters.push(v);
-        votersByCenter[centerId][id] = v;
         return true;
     }
 
