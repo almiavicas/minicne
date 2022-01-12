@@ -1,6 +1,10 @@
 pragma solidity ^0.8.0;
 
+import "./SafeMath.sol";
+
 contract ElectionV2 {
+    using SafeMath for uint;
+
     struct Voter {
         address id;
         uint centerId;
@@ -126,6 +130,8 @@ contract ElectionV2 {
         for (uint i = 0; i < voters.length; i++) {
             require(voters[i].id != id);
         }
+        Location memory l = findLocation(locationId);
+        l.voters = l.voters.add(1);
         Voter memory v = Voter(id, centerId, locationId);
         voters.push(v);
         votersByCenter[centerId][id] = v;

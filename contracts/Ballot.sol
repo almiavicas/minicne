@@ -1,5 +1,7 @@
 pragma solidity ^0.8.0;
 
+// SPDX-License-Identifier: MIT
+
 contract Election {
     //This represents a single voter.
     struct Voter {
