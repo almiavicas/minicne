@@ -45,6 +45,8 @@ contract ElectionV2 {
     mapping(uint => mapping(uint => Center)) centersByLocation;
     mapping(uint => mapping(address => Voter)) votersByCenter;
 
+    event ViewBallotResultsByLocation(address candidateAddress, uint votesCount, string location);
+    event ViewBallotGlobalResults(address candidateAddress, uint votesCount);
 
     constructor() {
         cne = msg.sender;
@@ -310,5 +312,24 @@ contract ElectionV2 {
         candidates.push(c1);
         candidates.push(c2);
         return openBallot(ballotId);
+    }
+
+    function viewBallotInfo(uint ballotId) public CNEOnly returns (bool) {
+        uint ballotIndex = findBallotIndex(ballotId);
+        Ballot memory b = ballots[ballotIndex];
+
+        for (uint i = 0; i < candidates.length; i++) {
+            if (candidates[i].ballotId == b.id) {
+                if (b.global) {
+                    uint locationIndex = findLocationIndex(b.locationId);
+                    Location memory l = locations[locationIndex];
+                    emit ViewBallotResultsByLocation(candidates[i].id, candidates[i].votesCount, l.name);
+                } else {
+                    emit ViewBallotGlobalResults(candidates[i].id, candidates[i].votesCount);
+                }
+            }
+        }
+
+        return true;
     }
 }
