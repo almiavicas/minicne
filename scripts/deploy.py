@@ -1,5 +1,5 @@
-from brownie import ElectionV2, accounts
+from brownie import ElectionV2
+from brownie.network.account import LocalAccount
 
-def main(account_id: str = 'deployment_account'):
-    acct = accounts.load(account_id)
+def main(acct: LocalAccount):
     return acct.deploy(ElectionV2)

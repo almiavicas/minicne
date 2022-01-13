@@ -20,12 +20,12 @@ donde:
 from random import choice
 from brownie import accounts
 from brownie.network.contract import ProjectContract
+from brownie.network.account import LocalAccount
 from scripts.utils import parse_locations_file
 
 
-def main(filename: str, contract: ProjectContract, account_id: str = 'deployment_account'):
+def main(filename: str, contract: ProjectContract, acct: LocalAccount):
     locations = parse_locations_file(filename)
-    acct = accounts.load(account_id)
     it = iter(accounts)
     centers_created = 0
     for i, location in enumerate(locations):

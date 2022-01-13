@@ -3,9 +3,9 @@ from math import ceil
 import pandas as pd
 from brownie import accounts
 from brownie.network.contract import ProjectContract
+from brownie.network.account import LocalAccount
 
-def main(contract: ProjectContract, account_id: str = 'deployment_account'):
-    acct = accounts.load(account_id)
+def main(contract: ProjectContract, acct: LocalAccount):
     locations = contract.getLocations({'from': acct})
     locations = [tuple(loc) for loc in locations]
     locations_df = pd.DataFrame(locations, columns=['id', 'name', 'voters'])
