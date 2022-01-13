@@ -1,7 +1,6 @@
 from random import choices
 from math import ceil
 import pandas as pd
-from brownie import accounts
 from brownie.network.contract import ProjectContract
 from brownie.network.account import LocalAccount
 
