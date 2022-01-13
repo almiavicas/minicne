@@ -50,8 +50,9 @@ contract ElectionV2 {
     event VoteEmitted(Vote vote);
     event OpenBallot(Ballot ballot);
     event CloseBallot(Ballot ballot, address winner);
-    event ViewBallotResultsByLocation(address candidateAddress, uint votesCount, string location);
-    event ViewBallotGlobalResults(address candidateAddress, uint votesCount);
+    event ViewBallotResultsByLocation(uint round, address candidateAddress, uint votesCount, string location, uint percentage);
+    event ViewBallotGlobalResults(uint round, address candidateAddress, uint votesCount, uint percentage);
+    event WinnerResult(uint round, address candidateAddress, uint votesCount, uint percentage, uint totalVotes, uint abstention);
 
     constructor() {
         cne = msg.sender;
@@ -155,6 +156,16 @@ contract ElectionV2 {
      */
     function getVoters() public view returns (Voter[] memory) {
         return voters;
+    }
+
+    function getVotersByLocation(uint locationId) public view returns (uint) {
+        uint votersLength = 0;
+        for (uint i = 0; i < voters.length; i++) {
+            if (voters[i].locationId == locationId) {
+                votersLength = votersLength + 1;
+            }
+        }
+        return votersLength;
     }
 
     /**
@@ -403,19 +414,42 @@ contract ElectionV2 {
     function viewBallotInfo(uint ballotId) public CNEOnly returns (bool) {
         uint ballotIndex = findBallotIndex(ballotId);
         Ballot memory b = ballots[ballotIndex];
+        uint totalVotes = 0;
 
         for (uint i = 0; i < candidates.length; i++) {
             if (candidates[i].ballotId == b.id) {
+                totalVotes = totalVotes + candidates[i].votesCount;
+            }
+        }
+
+        Candidate memory winner;
+        uint highestVotes = 1;
+        uint locationIndex = findLocationIndex(b.locationId);
+        Location memory l = locations[locationIndex];
+        uint votersByLocation = getVotersByLocation(l.id);
+        
+        for (uint i = 0; i < candidates.length; i++) {
+            if (candidates[i].ballotId == b.id) {
+                if(candidates[i].votesCount > highestVotes) {
+                    highestVotes = candidates[i].votesCount;
+                    winner = candidates[i];
+                }
                 if (b.global) {
-                    uint locationIndex = findLocationIndex(b.locationId);
-                    Location memory l = locations[locationIndex];
-                    emit ViewBallotResultsByLocation(candidates[i].id, candidates[i].votesCount, l.name);
+                    emit ViewBallotGlobalResults(b.round, candidates[i].id, candidates[i].votesCount, uint(candidates[i].votesCount * 100 / totalVotes));
+                    emit WinnerResult(b.round, winner.id, winner.votesCount, uint(winner.votesCount * 100 / totalVotes), totalVotes, uint(voters.length * 100 / totalVotes));
                 } else {
-                    emit ViewBallotGlobalResults(candidates[i].id, candidates[i].votesCount);
+                    emit ViewBallotResultsByLocation(b.round, candidates[i].id, candidates[i].votesCount, l.name, uint(candidates[i].votesCount * 100 / totalVotes));
+                    emit WinnerResult(b.round, winner.id, winner.votesCount, uint(winner.votesCount * 100 / totalVotes), totalVotes, uint(votersByLocation * 100 / totalVotes));
                 }
             }
         }
 
+        if (b.global) {
+            emit WinnerResult(b.round, winner.id, winner.votesCount, uint(winner.votesCount * 100 / totalVotes), totalVotes, uint(voters.length * 100 / totalVotes));
+        } else {
+            emit WinnerResult(b.round, winner.id, winner.votesCount, uint(winner.votesCount * 100 / totalVotes), totalVotes, uint(votersByLocation * 100 / totalVotes));
+        }
+        
         return true;
     }
 }
