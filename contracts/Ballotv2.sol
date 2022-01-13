@@ -421,12 +421,12 @@ contract ElectionV2 {
                 totalVotes = totalVotes + candidates[i].votesCount;
             }
         }
-
+        require(totalVotes > 0, 'No one has voted yet');
         Candidate memory winner;
         uint highestVotes = 1;
         uint locationIndex = findLocationIndex(b.locationId);
         Location memory l = locations[locationIndex];
-        uint votersByLocation = getVotersByLocation(l.id);
+        uint votersByLocation = l.voters;
         
         for (uint i = 0; i < candidates.length; i++) {
             if (candidates[i].ballotId == b.id) {
@@ -436,18 +436,15 @@ contract ElectionV2 {
                 }
                 if (b.global) {
                     emit ViewBallotGlobalResults(b.round, candidates[i].id, candidates[i].votesCount, uint(candidates[i].votesCount * 100 / totalVotes));
-                    emit WinnerResult(b.round, winner.id, winner.votesCount, uint(winner.votesCount * 100 / totalVotes), totalVotes, uint(voters.length * 100 / totalVotes));
                 } else {
                     emit ViewBallotResultsByLocation(b.round, candidates[i].id, candidates[i].votesCount, l.name, uint(candidates[i].votesCount * 100 / totalVotes));
-                    emit WinnerResult(b.round, winner.id, winner.votesCount, uint(winner.votesCount * 100 / totalVotes), totalVotes, uint(votersByLocation * 100 / totalVotes));
                 }
             }
         }
-
         if (b.global) {
-            emit WinnerResult(b.round, winner.id, winner.votesCount, uint(winner.votesCount * 100 / totalVotes), totalVotes, uint(voters.length * 100 / totalVotes));
+            emit WinnerResult(b.round, winner.id, winner.votesCount, uint(winner.votesCount * 100 / totalVotes), totalVotes, 100 - uint(totalVotes * 100 / voters.length));
         } else {
-            emit WinnerResult(b.round, winner.id, winner.votesCount, uint(winner.votesCount * 100 / totalVotes), totalVotes, uint(votersByLocation * 100 / totalVotes));
+            emit WinnerResult(b.round, winner.id, winner.votesCount, uint(winner.votesCount * 100 / totalVotes), totalVotes, 100 - uint(totalVotes * 100 / votersByLocation));
         }
         
         return true;

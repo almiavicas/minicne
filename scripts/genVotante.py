@@ -35,11 +35,11 @@ def main(filename: str, contract: ProjectContract, account_id: str = 'deployment
         contract.addLocation(i, name, {'from': acct})
         for x in range(centers_created, centers_created + centers):
             contract.addCenter(x, i, {'from': acct})
-        centers_created += centers
         for x in range(voters):
             try:
                 voter = next(it)
             except StopIteration:
                 voter = accounts.add()
             finally:
-                contract.addVoter(voter, choice(range(centers)), i, {'from': acct})
+                contract.addVoter(voter, choice(range(centers_created, centers_created + centers)), i, {'from': acct})
+        centers_created += centers

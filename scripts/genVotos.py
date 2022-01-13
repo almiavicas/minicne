@@ -1,6 +1,6 @@
 '''Generador de votos.
 '''
-from random import randrange, choices, choice
+from random import randrange, choices, choice, sample
 import pandas as pd
 from brownie import accounts
 from brownie.network.contract import ProjectContract
@@ -38,7 +38,7 @@ def main(
         governor_ballot = governor_ballot[~governor_ballot['global']]
         print(governor_ballot)
         ballot_candidates = candidates_df[candidates_df.ballotId == list(governor_ballot.id)[0]]
-        voters_to_vote = choices(list(location_voters.address), k=votes_to_generate)
+        voters_to_vote = sample(list(location_voters.address), votes_to_generate)
         print('Location: %s. Voters: %d. Abstention: %d' %(list(location.name)[0], registered_voters, abstention))
         for address in voters_to_vote:
             candidate = choice(list(ballot_candidates.id))
@@ -50,7 +50,7 @@ def main(
     print('Voters: %d. Abstention: %d' %(registered_voters, abstention))
     president_ballot = ballots_df[ballots_df['global']]
     ballot_candidates = candidates_df[candidates_df.ballotId == list(president_ballot.id)[0]]
-    voters_to_vote = choices(list(voters_df.address), k=votes_to_generate)
+    voters_to_vote = sample(list(voters_df.address), votes_to_generate)
     for address in voters_to_vote:
         candidate = choice(list(ballot_candidates.id))
         contract.vote(list(president_ballot.id)[0], list(president_ballot['round'])[0], candidate, {'from': address})
