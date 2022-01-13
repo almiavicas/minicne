@@ -143,6 +143,39 @@ Prettifying this output we get the following:
 }
 ```
 
-The electoral process consists on elections for governors and president. Each governor election is handled separately from one another. Same happens with a presidential election.
+Lets explain some of these fields:
 
-The main difference between governors and presidential elections is that the voters for governors elections are limited to the voters registered in the specific location (For example, for `Zulia` state, only voters registered in `Zulia` location should be able to vote). In a presidential election, all voters are allowed to vote.
+- `ViewBallotResultsByLocation`: It contains the results for a location or governor ballot.
+    - `round`: Specifies which round is the ballot currently in. Every ballot has 2 rounds. The second round contains the best two candidates from the first round.
+    - `candidateAddress`: Identifies the specific candidate. Candidates must also be voters.
+    - `votesCount`: Votes for a specific candidate.
+    - `location`: Location of the ballot.
+    - `percentage`: Percentage of the `totalVotes` that a candidate collected.
+- `WinnerResult`: Contains the information about the winner for a specific ballot and a specific round.
+    - `round`: Specific round (1 or 2).
+    - `candidateAddress`: The address of the winner so far.
+    - `votesCount`: The number of votes of the winner.
+    - `totalVotes`: The number of voters that participated in the ballot.
+    - `abstention`: The percentage of abstention in the specific location.
+
+For a presidential ballot, the only difference is that we do not get a `location` field. Everything else will be the same.
+
+### Moving to second round
+
+Now that we have voted in the first round, we are ready to enter in the second round.
+
+```python
+for i in range(5):
+    contract.nextRound(i, {'from': acct})
+
+```
+
+The second round consists of a ballot of the same location but with only the two best performing candidates from the first round.
+
+> Currently we do not handle draw cases.
+
+To [vote](#voting-process) in the second round the process is the same as for the first round.
+
+# Tests
+
+We made tests for every function in the contract. We encourage you to go to the tests folder to see an example of the contract usage. To run every test, you can use `brownie test`.
