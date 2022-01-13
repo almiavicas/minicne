@@ -1,45 +1,57 @@
-'''Generador de Votantes.
-El generador de votantes define un conjunto de localidades electorales y asigna a cada
-votante un centro de votacion en su localidad de forma aleatoria. Ademas, de entre los
-votantes creados selecciona un subconjunto razonable de estos (1%) como candidatos a los
-diferentes cargos a ser elegidos.
-
-Archivo de localidades.
-Sintaxis:
-
-Local1 numVotantes1 numeroCentrosVotacion1
-Local2 numVotantes2 numeroCentrosVotacion2
-...
-Localn numVotantesn numeroCentrosVotacionn
-
-donde:
-    - Locali: Representa el nombre de la localidad
-    - numVotantesi: Numero de votantes inscritos para esa localidad
-    - numeroCentrosVotacioni: Numero de centros de votacion disponibles en esa localidad.
+'''Generador de votos.
 '''
-from random import choice
+from random import randrange, choices, choice
+import pandas as pd
 from brownie import accounts
 from brownie.network.contract import ProjectContract
-from scripts.utils import parse_locations_file
 
 
-def main(filename: str, contract: ProjectContract, account_id: str = 'deployment_account'):
-    locations = parse_locations_file(filename)
+def main(
+    contract: ProjectContract,
+    account_id: str = 'deployment_account',
+    min_abstention: float = 0.1,
+    max_abstention: float = 0.3,
+):
     acct = accounts.load(account_id)
-    it = iter(accounts)
-    centers_created = 0
-    for i, location in enumerate(locations):
-        name = list(location.keys())[0]
-        voters = location[name]['voters']
-        centers = location[name]['centers']
-        contract.addLocation(i, name, {'from': acct})
-        for x in range(centers_created, centers_created + centers):
-            contract.addCenter(x, i, {'from': acct})
-        centers_created += centers
-        for x in range(voters):
-            try:
-                voter = next(it)
-            except StopIteration:
-                voter = accounts.add()
-            finally:
-                contract.addVoter(voter, choice(range(centers)), i, {'from': acct})
+    locations = contract.getLocations({'from': acct})
+    locations = [tuple(loc) for loc in locations]
+    locations_df = pd.DataFrame(locations, columns=['id', 'name', 'voters'])
+    voters = contract.getVoters({'from': acct})
+    voters = [tuple(voter) for voter in voters]
+    voters_df = pd.DataFrame(voters, columns=['address', 'centerId', 'locationId'])
+    candidates = contract.getCandidates({'from': acct})
+    candidates = [tuple(c) for c in candidates]
+    candidates_df = pd.DataFrame(candidates, columns=['id', 'ballotId', 'roundId', 'votesCount'])
+    ballots = contract.getBallots({'from': acct})
+    ballots = [tuple(b) for b in ballots]
+    ballots_df = pd.DataFrame(ballots, columns=['id', 'closed', 'global', 'locationId', 'round'])
+    print('Generating Governors votes')
+    location_ids = list(locations_df.id)
+    for loc_id in location_ids:
+        location = locations_df[locations_df.id == loc_id]
+        registered_voters = int(location.voters)
+        abstention = registered_voters * randrange(min_abstention * 100, max_abstention * 100) // 100
+        votes_to_generate = registered_voters - abstention
+        location_voters = voters_df[voters_df.locationId == loc_id]
+        print(location_voters)
+        governor_ballot = ballots_df[ballots_df.locationId == loc_id]
+        governor_ballot = governor_ballot[~governor_ballot['global']]
+        print(governor_ballot)
+        ballot_candidates = candidates_df[candidates_df.ballotId == list(governor_ballot.id)[0]]
+        voters_to_vote = choices(list(location_voters.address), k=votes_to_generate)
+        print('Location: %s. Voters: %d. Abstention: %d' %(list(location.name)[0], registered_voters, abstention))
+        for address in voters_to_vote:
+            candidate = choice(list(ballot_candidates.id))
+            contract.vote(list(governor_ballot.id)[0], list(governor_ballot['round'])[0], candidate, {'from': address})
+    print('Generating Presidents votes')
+    registered_voters = len(voters_df)
+    abstention = registered_voters * randrange(min_abstention * 100, max_abstention * 100) // 100
+    votes_to_generate = registered_voters - abstention
+    print('Voters: %d. Abstention: %d' %(registered_voters, abstention))
+    president_ballot = ballots_df[ballots_df['global']]
+    ballot_candidates = candidates_df[candidates_df.ballotId == list(president_ballot.id)[0]]
+    voters_to_vote = choices(list(voters_df.address), k=votes_to_generate)
+    for address in voters_to_vote:
+        candidate = choice(list(ballot_candidates.id))
+        contract.vote(list(president_ballot.id)[0], list(president_ballot['round'])[0], candidate, {'from': address})
+

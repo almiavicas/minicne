@@ -166,6 +166,14 @@ contract ElectionV2 {
     }
 
     /**
+        @notice Get ballots.
+        @return ballots array.
+     */
+    function getBallots() public view returns (Ballot[] memory) {
+        return ballots;
+    }
+
+    /**
         @notice Add a new location to the Contract.
         @param id - The location id.
         @param name - The location name.
@@ -208,6 +216,7 @@ contract ElectionV2 {
         uint index = findLocationIndex(locationId);
         Location memory l = locations[index];
         l.voters = l.voters + 1;
+        locations[index] = l;
         Voter memory v = Voter(id, centerId, locationId);
         voters.push(v);
         return true;

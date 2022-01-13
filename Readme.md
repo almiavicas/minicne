@@ -29,5 +29,9 @@ This will deploy your smart contract and store a reference to it in the contract
 To generate voters, locations and centers you need the previous step to have an interactive console. After deploying your contract, run the following command inside the console:
 
 ```python
+contract = run('scripts/deploy.py')
 run('scripts/genVotante.py', args=['localidades.txt', contract])
+run('scripts/genVotaciones.py', args=[contract])
+run('scripts/genVotos.py', args=[contract])
+run('scripts/genVotos.py', args=[contract, 'deployment_account', 0.1, 0.3])
 ```
